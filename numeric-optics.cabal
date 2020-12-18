@@ -8,8 +8,8 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:        Control.Categories
-                        , Numeric.Optics
+  exposed-modules:        Numeric.Optics
+                        , Control.Categories
                         , Numeric.Optics.Types
                         , Numeric.Optics.Base.Accelerate
   build-depends:          base >=4.13 && <4.14
