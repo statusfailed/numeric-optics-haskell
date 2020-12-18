@@ -1,0 +1,20 @@
+cabal-version:       >=1.10
+name:                numeric-optics
+version:             0.1.0.0
+license-file:        LICENSE
+author:              statusfailed
+maintainer:          sf@statusfailed.com
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+
+library
+  exposed-modules:        Control.Categories
+                        , Numeric.Optics
+                        , Numeric.Optics.Types
+                        , Numeric.Optics.Base.Accelerate
+  build-depends:          base >=4.13 && <4.14
+                        , ghc-prim >= 0.5.3
+                        , accelerate >= 1.3.0.0
+  hs-source-dirs:       src
+  default-language:     Haskell2010
+  ghc-options:         -O2 -threaded
