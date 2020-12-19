@@ -78,7 +78,7 @@ type ParaLens tensor cat p a b = MonoLens tensor cat (tensor p a) b
 -- | Parametrised composition
 -- >>> (~~>) : (P × A → B) ⇒ (Q × B → C) ⇒ (P × Q) × A → C
 (~~>) :: forall obj (cat :: obj -> obj -> Type) p q a b c .
-  ( Cartesian cat
+  ( Monoidal cat
   , Obj cat p, Obj cat q, Obj cat a, Obj cat b, Obj cat c
   , Obj cat (Tensor cat q p)
   , Obj cat (Tensor cat p a)
