@@ -37,11 +37,7 @@ instance Monoidal (MonoLens (,) (->)) where
 
   tensor (MonoLens f f') (MonoLens g g') = MonoLens h h' where
     h  = f × g
-    h' = ex ~> (f' × g')
-    -- σ : (A × B) → (B × A)
-    σ  = pair π1 π0
-    -- ex : (A × C) × (B' × D') → (A × B') × (C × D')
-    ex = assocL ~> (id × (assocR ~> (σ × id) ~> assocL)) ~> assocR
+    h' = exchange ~> (f' × g')
 
   -- TODO: NOTE: ask everyone if these are right!
   assocL = MonoLens assocL (proj1 ~> assocR)

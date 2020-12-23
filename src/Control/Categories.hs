@@ -104,6 +104,53 @@ twist :: forall cat a b .
   => cat (Tensor cat a b) (Tensor cat b a)
 twist = pair @cat @(Tensor cat a b) (proj1 @cat @a @b) (proj0 @cat @a @b)
 
+-- The @ex@ morphism from the /Reverse Derivativ Categories/ paper, i.e., @id × σ × id@
+-- NOTE: this is a fine example of a morphism which is very simple but a
+-- colossal pain to write generically using this library's 'Category'
+-- definition, because we have to include so many @Obj cat x@ constraints
+-- and type applications.
+-- On the other hand, when working in a fixed category instance (e.g, `(->)`),
+-- type inference works fine, and this morphism can be written simply as
+-- >>> assocL ~> (id × (assocR ~> (twist × id) ~> assocL)) ~> assocR
+-- without any additional ceremony.
+exchange :: forall cat a b c d .
+  ( Cartesian cat , Obj cat a, Obj cat b, Obj cat c, Obj cat d
+  -- assocL : (A × B) × (C × D) → A × (B × (C × D))
+  , Obj cat (Tensor cat a b)
+  , Obj cat (Tensor cat c d)
+  , Obj cat (Tensor cat (Tensor cat a b) (Tensor cat c d))
+  -- assocR : B × (C × D) → (B × C) × D
+  , Obj cat (Tensor cat b (Tensor cat c d))
+  , Obj cat (Tensor cat a (Tensor cat b (Tensor cat c d)))
+  , Obj cat (Tensor cat (Tensor cat b c) d)
+  , Obj cat (Tensor cat a (Tensor cat (Tensor cat b c) d))
+  -- twist  : B × C -> C × B
+  , Obj cat (Tensor cat b c)
+  , Obj cat (Tensor cat (Tensor cat b c) (Tensor cat b c))
+  , Obj cat (Tensor cat c b)
+  , Obj cat (Tensor cat (Tensor cat c b) d)
+  , Obj cat (Tensor cat a (Tensor cat (Tensor cat c b) d))
+  -- assocL : (C × B) × D -> C × (B × D)
+  , Obj cat (Tensor cat (Tensor cat c b) d)
+  , Obj cat (Tensor cat c (Tensor cat b d))
+  , Obj cat (Tensor cat a (Tensor cat (Tensor cat c b) d))
+  , Obj cat (Tensor cat a (Tensor cat c (Tensor cat b d)))
+  -- assocR
+  , Obj cat (Tensor cat a c)
+  , Obj cat (Tensor cat b d)
+  , Obj cat (Tensor cat (Tensor cat a c) (Tensor cat b d))
+  )
+  => cat (Tensor cat (Tensor cat a b) (Tensor cat c d)) (Tensor cat (Tensor cat a c) (Tensor cat b d))
+exchange
+  =  assocL @_ @cat @a @b @(Tensor cat c d)
+  ~> ( id @_ @cat @a
+     × (  assocR @_ @cat @b @c @d
+       ~> (twist @cat @b @c × id @_ @cat @d)
+       ~> assocL @_ @cat @c @b @d
+       )
+     )
+  ~> assocR @_ @cat @a @c @(Tensor cat b d)
+
 -------------------------------
 -- Common instances
 
