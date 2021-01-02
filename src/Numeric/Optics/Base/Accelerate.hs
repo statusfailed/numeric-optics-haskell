@@ -4,6 +4,7 @@
 -- ^ Needed for Distributes instance
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Numeric.Optics.Base.Accelerate where
 
 import Prelude hiding (id)
@@ -121,6 +122,7 @@ instance Monoidal (MonoLens (,) (DSL Exp)) where
 
 -------------------------------
 -- Combinators
+-- TODO: put these in a "Lenses" module so it can be imported qualified?
 
 -- | Map an 'Exp' *lens* over an array.
 mapLens :: (Elt a, Elt b, Shape sh)
@@ -129,3 +131,70 @@ mapLens :: (Elt a, Elt b, Shape sh)
 mapLens (MonoLens f f') = MonoLens h h' where
   h  = translate A.map f
   h' = translate (A.uncurry . A.zipWith . A.curry) f'
+
+zipWithLens :: (Elt a, Elt b, Elt c, Shape sh)
+  => MonoLens (,) (DSL Exp) (a, b) c
+  -> MonoLens (,) (DSL Acc) (Array sh a, Array sh b) (Array sh c)
+zipWithLens (MonoLens f f') = MonoLens h (DSL h') where
+  h  = translate (A.uncurry . A.zipWith . A.curry) f
+
+  -- NOTE: Running f' pointwise results in an array of (a, b), but what we
+  -- really want is two arrays (Array a, Array b).
+  -- We therefore have to map "fst" and "snd" over the array of pairs to get a
+  -- pair of arrays.
+  -- TODO: Check if there's a better way to do this!
+  h' (T2 (T2 as bs) cs) =
+    let r = A.zipWith3 k as bs cs
+    in  T2 (A.map A.fst r) (A.map A.snd r)
+
+  k a b c = runDSL f' (T2 (T2 a b) c)
+
+-------------------------------
+-- Useful numeric lenses
+
+multiply :: A.Num a => ParaLens (,) (DSL Exp) a a a
+multiply = MonoLens (DSL f) (DSL f') where
+  f  (T2 p a)        = p A.* a
+  f' (T2 (T2 p a) b) = T2 (a A.* b) (p A.* b)
+
+-- TODO: Pointwise multiply (requires zipWithlens ?)
+amultiply :: (Shape sh, A.Num a) => ParaLens (,) (DSL Acc) (Array sh a) (Array sh a) (Array sh a)
+amultiply = zipWithLens multiply
+
+projection :: (A.Shape sh, A.Eq sh, A.Num a) => Exp sh -> MonoLens (,) (DSL Acc) (Array sh a) (A.Scalar a)
+projection sh = MonoLens (DSL f) (DSL f') where
+  f  x        = A.unit (x A.! sh)
+  f' (T2 x y) = A.generate (A.shape x) (\sh' -> sh A.== sh' A.? (A.the y, 0))
+
+-- NOTE: TODO: the reverse component of this lens is NOT the reverse derivative
+-- of "floor"- this is basically a use of the "straight-through estimator".
+efloor :: (A.Ord a, A.Fractional a, A.RealFrac a, A.Integral b, A.FromIntegral A.Int64 b, A.FromIntegral b a)
+  => MonoLens (,) (DSL Exp) a b
+efloor = MonoLens (DSL f) (DSL f') where
+  f  = A.floor
+  f' = A.fromIntegral . A.snd
+
+-- Array constants
+fillLens :: (Shape sh, Elt a)
+  => Exp sh
+  -> Exp a
+  -> MonoLens (,) (DSL Acc) () (Array sh a)
+fillLens sh a = MonoLens (DSL f) (DSL f') where
+  f  _ = A.fill sh a
+  f' _ = A.lift ()
+
+-- NOTE: this is an example of an isomorphism and its reverse derivative;
+-- the forward and reverse functions only change types.
+reshapeLens :: (Shape sh, Shape sh', Elt a)
+  => Exp sh
+  -> MonoLens (,) (DSL Acc) (Array sh' a) (Array sh a)
+reshapeLens sh = MonoLens (DSL f) (DSL f') where
+  f           = A.reshape sh
+  f' (T2 x y) = A.reshape (A.shape x) y
+
+-- TODO
+-- | @unsafeOneHot n@ encodes a scalar int whose maximum value is n as a one-hot vector.
+-- Note that the reverse component of this lens is the reverse derivative iff
+-- the scalar input is never greater than @n@.
+-- unsafeOneHot :: Exp Int -> MonoLens (,) (DSL Acc) (Scalar Int) (Vector a)
+-- unsafeOneHot = undefined

@@ -57,7 +57,7 @@ newtype DSL dsl a b = DSL { runDSL :: dsl a -> dsl b }
 -- For example using Data.Array.Accelerate,
 -- >>> translate A.map
 -- is a map which turns a scalar Accelerate function @f@ into an array
--- computation, by mapping @f@ over each element.
+-- function, by mapping @f@ over each element.
 translate :: ((dsl1 a1 -> dsl1 b1) -> (dsl2 a2 -> dsl2 b2)) -> DSL dsl1 a1 b1 -> DSL dsl2 a2 b2
 translate f = DSL . f . runDSL
 
