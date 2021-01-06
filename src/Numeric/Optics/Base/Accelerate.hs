@@ -121,7 +121,7 @@ instance Monoidal (MonoLens (,) (DSL Exp)) where
   counitorL = MonoLens counitorL (proj1 ~> unitorL)
 
 -------------------------------
--- Combinators
+-- Combinators and array-valued lenses
 -- TODO: put these in a "Lenses" module so it can be imported qualified?
 
 -- | Map an 'Exp' *lens* over an array.
@@ -132,6 +132,7 @@ mapLens (MonoLens f f') = MonoLens h h' where
   h  = translate A.map f
   h' = translate (A.uncurry . A.zipWith . A.curry) f'
 
+-- | The lens equivalent of zipWith
 zipWithLens :: (Elt a, Elt b, Elt c, Shape sh)
   => MonoLens (,) (DSL Exp) (a, b) c
   -> MonoLens (,) (DSL Acc) (Array sh a, Array sh b) (Array sh c)
@@ -148,31 +149,6 @@ zipWithLens (MonoLens f f') = MonoLens h (DSL h') where
     in  T2 (A.map A.fst r) (A.map A.snd r)
 
   k a b c = runDSL f' (T2 (T2 a b) c)
-
--------------------------------
--- Useful numeric lenses
-
-multiply :: A.Num a => ParaLens (,) (DSL Exp) a a a
-multiply = MonoLens (DSL f) (DSL f') where
-  f  (T2 p a)        = p A.* a
-  f' (T2 (T2 p a) b) = T2 (a A.* b) (p A.* b)
-
--- TODO: Pointwise multiply (requires zipWithlens ?)
-amultiply :: (Shape sh, A.Num a) => ParaLens (,) (DSL Acc) (Array sh a) (Array sh a) (Array sh a)
-amultiply = zipWithLens multiply
-
-projection :: (A.Shape sh, A.Eq sh, A.Num a) => Exp sh -> MonoLens (,) (DSL Acc) (Array sh a) (A.Scalar a)
-projection sh = MonoLens (DSL f) (DSL f') where
-  f  x        = A.unit (x A.! sh)
-  f' (T2 x y) = A.generate (A.shape x) (\sh' -> sh A.== sh' A.? (A.the y, 0))
-
--- NOTE: TODO: the reverse component of this lens is NOT the reverse derivative
--- of "floor"- this is basically a use of the "straight-through estimator".
-efloor :: (A.Ord a, A.Fractional a, A.RealFrac a, A.Integral b, A.FromIntegral A.Int64 b, A.FromIntegral b a)
-  => MonoLens (,) (DSL Exp) a b
-efloor = MonoLens (DSL f) (DSL f') where
-  f  = A.floor
-  f' = A.fromIntegral . A.snd
 
 -- Array constants
 fillLens :: (Shape sh, Elt a)
@@ -192,9 +168,34 @@ reshapeLens sh = MonoLens (DSL f) (DSL f') where
   f           = A.reshape sh
   f' (T2 x y) = A.reshape (A.shape x) y
 
--- TODO
--- | @unsafeOneHot n@ encodes a scalar int whose maximum value is n as a one-hot vector.
--- Note that the reverse component of this lens is the reverse derivative iff
--- the scalar input is never greater than @n@.
--- unsafeOneHot :: Exp Int -> MonoLens (,) (DSL Acc) (Scalar Int) (Vector a)
--- unsafeOneHot = undefined
+projection :: (A.Shape sh, A.Eq sh, A.Num a) => Exp sh -> MonoLens (,) (DSL Acc) (Array sh a) (A.Scalar a)
+projection sh = MonoLens (DSL f) (DSL f') where
+  f  x        = A.unit (x A.! sh)
+  f' (T2 x y) = A.generate (A.shape x) (\sh' -> sh A.== sh' A.? (A.the y, 0))
+
+-------------------------------
+-- Scalar lenses
+
+multiply :: A.Num a => ParaLens (,) (DSL Exp) a a a
+multiply = MonoLens (DSL f) (DSL f') where
+  f  (T2 p a)        = p A.* a
+  f' (T2 (T2 p a) b) = T2 (a A.* b) (p A.* b)
+
+add :: A.Num a => ParaLens (,) (DSL Exp) a a a
+add = MonoLens (DSL f) (DSL f') where
+  f  (T2 p a)        = p A.+ a
+  f' (T2 (T2 p a) b) = T2 b b
+
+-- NOTE: TODO: the reverse component of this lens is NOT the reverse derivative
+-- of "floor"- this is basically a use of the "straight-through estimator".
+efloor :: (A.Ord a, A.Fractional a, A.RealFrac a, A.Integral b, A.FromIntegral A.Int64 b, A.FromIntegral b a)
+  => MonoLens (,) (DSL Exp) a b
+efloor = MonoLens (DSL f) (DSL f') where
+  f  = A.floor
+  f' = A.fromIntegral . A.snd
+
+eround :: (A.RealFrac a, A.FromIntegral b a, A.Elt a, A.Ord b, A.Integral b, A.FromIntegral A.Int64 b)
+  => MonoLens (,) (DSL Exp) a b
+eround = MonoLens (DSL f) (DSL f') where
+  f  = A.round
+  f' = A.fromIntegral . A.snd
