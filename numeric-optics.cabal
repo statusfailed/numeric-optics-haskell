@@ -19,4 +19,27 @@ library
                         , accelerate-blas >= 0.3.0.0
   hs-source-dirs:       src
   default-language:     Haskell2010
+  ghc-options:         -O2
+  extra-libraries: cblas
+
+executable numeric-optics-demo
+  main-is:                Main.hs
+  hs-source-dirs:         app
+  exposed-modules:        Main
+  other-modules:          Iris, Training, Tests
+  build-depends:          base >=4.13 && <4.14
+                        , numeric-optics
+                        , ghc-prim >= 0.5.3
+                        , cassava >= 0.5.2.0
+                        , bytestring >= 0.10.10.1
+                        , accelerate >= 1.3.0.0
+                        , accelerate-blas >= 0.3.0.0
+                        , accelerate-llvm-native >= 1.3
+                        , accelerate-llvm-ptx >= 1.3
+                        , mwc-random-accelerate >= 0.2.0.0
+                        , mwc-random >= 0.15.0.1
+                        , random-shuffle
+                        , MonadRandom
+  default-language:     Haskell2010
   ghc-options:         -O2 -threaded
+  extra-libraries: cblas
