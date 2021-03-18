@@ -20,10 +20,10 @@ linearLayer = MonoLens (DSL f) (DSL f') where
   f :: Acc (Matrix k, Vector k) -> Acc (Vector k)
   f (T2 m x) = m #> x
 
-  -- See the following link fora  derivation:
+  -- See the following link for a derivation:
   -- https://web.eecs.umich.edu/~justincj/teaching/eecs442/notes/linear-backprop.html
   f' :: Acc ((Matrix k, Vector k), Vector k) -> Acc (Matrix k, Vector k)
-  f' (T2 (T2 m x) y) = T2 (y >< x) (A.transpose m #> y) -- llrd m x y -- TODO: -- linearLayerReverseDerivative m x y
+  f' (T2 (T2 m x) y) = T2 (y >< x) (A.transpose m #> y)
 
 -- | An activation layer for activation function @f@ is a scalar lens applied
 -- pointwise to each element of an array, i.e,. @mapLens f@.

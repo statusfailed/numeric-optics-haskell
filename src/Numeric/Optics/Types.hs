@@ -20,10 +20,11 @@ import GHC.Types (Type)
 import GHC.Exts (Constraint)
 import Control.Categories
 
--- | Monomorphic lenses over a category and tensor product
+-- | Monomorphic lenses over a category with a given tensor product
 data MonoLens tensor cat a b = MonoLens (cat a b) (cat (tensor a b) a)
 
--- Simple instance for MonoLens over Hask with (,) as tensor product
+-- Simple instance for MonoLens over Haskell types and functions with (,) as
+-- tensor product
 instance Cat (MonoLens (,) (->)) where
   type Obj (MonoLens (,) (->)) a = Obj (->) a
   id = MonoLens id proj1
@@ -39,7 +40,6 @@ instance Monoidal (MonoLens (,) (->)) where
     h  = f × g
     h' = exchange ~> (f' × g')
 
-  -- TODO: NOTE: ask everyone if these are right!
   assocL = MonoLens assocL (proj1 ~> assocR)
   assocR = MonoLens assocR (proj1 ~> assocL)
 
@@ -56,8 +56,8 @@ newtype DSL dsl a b = DSL { runDSL :: dsl a -> dsl b }
 -- | Translate between two DSLs
 -- For example using Data.Array.Accelerate,
 -- >>> translate A.map
--- is a map which turns a scalar Accelerate function @f@ into an array
--- function, by mapping @f@ over each element.
+-- is a map which turns a scalar Accelerate function @f :: Exp a -> Exp b@ into an array
+-- function of type @Acc (Array sh a) -> Acc (Array sh b)@, by mapping @f@ over each element.
 translate :: ((dsl1 a1 -> dsl1 b1) -> (dsl2 a2 -> dsl2 b2)) -> DSL dsl1 a1 b1 -> DSL dsl2 a2 b2
 translate f = DSL . f . runDSL
 

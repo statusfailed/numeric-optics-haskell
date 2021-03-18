@@ -111,6 +111,11 @@ step update displacement model = tensor update id ~> model ~> displacement
 -------------------------------
 -- Evaluation
 
+iterateN :: Arrays a => Exp Int -> (Acc (Scalar Int) -> Acc a -> Acc a) -> Acc a -> Acc a
+iterateN n f a0 = A.asnd $ A.awhile condition update (T2 (unit 0) a0) where
+  condition (T2 i _) = unit (the i A.< n)
+  update (T2 i a) = T2 (A.map (A.+1) i) (f i a)
+
 afoldrN :: Arrays b => Exp Int -> (Exp Int -> Acc a) -> (Acc a -> Acc b -> Acc b) -> Acc b -> Acc b
 afoldrN n load f b0 = A.asnd $ A.awhile condition g (T2 (unit 0) b0) where
   condition (T2 i _) = unit (the i A.< n)

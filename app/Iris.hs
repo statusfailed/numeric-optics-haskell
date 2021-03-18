@@ -102,7 +102,7 @@ baselineModelLens = unitorL ~> projection (I1 3) ~> reshapeLens (I1 1) ~> mapLen
 -- Baseline model, but where input data is first scaled pointwise.
 
 scaleModelParams :: Acc (Vector Double, Vector Double)
-scaleModelParams = T2 (A.fill (I1 4) 0.0) (A.fill (I1 4) 0.0) 
+scaleModelParams = T2 (A.fill (I1 4) 0.0) (A.fill (I1 4) 0.0)
 
 scaleModel :: ParaLens (,) (DSL Acc) (Vector Double, Vector Double) (Vector Double) (Vector Int)
 scaleModel = zipWithLens multiply ~~> zipWithLens add ~> projection (I1 3) ~> reshapeLens (I1 1) ~> mapLens efloor
